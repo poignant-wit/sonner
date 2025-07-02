@@ -62,6 +62,7 @@ export interface Action {
 
 export interface ToastT {
   id: number | string;
+  key?: string;
   title?: (() => React.ReactNode) | React.ReactNode;
   type?: ToastTypes;
   icon?: React.ReactNode;
@@ -142,6 +143,7 @@ export interface ToasterProps {
   swipeDirections?: SwipeDirection[];
   icons?: ToastIcons;
   containerAriaLabel?: string;
+  toasterKey?: string;
 }
 
 export type SwipeDirection = 'top' | 'right' | 'bottom' | 'left';

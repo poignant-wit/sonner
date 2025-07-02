@@ -521,33 +521,17 @@ function assignOffset(defaultOffset: ToasterProps['offset'], mobileOffset: Toast
   [defaultOffset, mobileOffset].forEach((offset, index) => {
     const isMobile = index === 1;
     const prefix = isMobile ? '--mobile-offset' : '--offset';
-    const defaultValue = isMobile ? MOBILE_VIEWPORT_OFFSET : VIEWPORT_OFFSET;
 
-    function assignAll(offset: string | number) {
-      ['top', 'right', 'bottom', 'left'].forEach((key) => {
-        styles[`${prefix}-${key}`] = typeof offset === 'number' ? `${offset}px` : offset;
-      });
-    }
-
-    if (typeof offset === 'number' || typeof offset === 'string') {
-      assignAll(offset);
-    } else if (typeof offset === 'object') {
-      ['top', 'right', 'bottom', 'left'].forEach((key) => {
-        if (offset[key] === undefined) {
-          styles[`${prefix}-${key}`] = defaultValue;
-        } else {
-          styles[`${prefix}-${key}`] = typeof offset[key] === 'number' ? `${offset[key]}px` : offset[key];
-        }
-      });
-    } else {
-      assignAll(defaultValue);
-    }
+    // Set all offset values to 0
+    ['top', 'right', 'bottom', 'left'].forEach((key) => {
+      styles[`${prefix}-${key}`] = '0px';
+    });
   });
 
   return styles;
 }
 
-function useSonner() {
+function useSonner(key?: string) {
   const [activeToasts, setActiveToasts] = React.useState<ToastT[]>([]);
 
   React.useEffect(() => {
@@ -580,8 +564,8 @@ function useSonner() {
           });
         });
       });
-    });
-  }, []);
+    }, key);
+  }, [key]);
 
   return {
     toasts: activeToasts,
@@ -608,7 +592,9 @@ const Toaster = React.forwardRef<HTMLElement, ToasterProps>(function Toaster(pro
     gap = GAP,
     icons,
     containerAriaLabel = 'Notifications',
+    toasterKey: toasterKey,
   } = props;
+
   const [toasts, setToasts] = React.useState<ToastT[]>([]);
   const possiblePositions = React.useMemo(() => {
     return Array.from(
@@ -672,8 +658,8 @@ const Toaster = React.forwardRef<HTMLElement, ToasterProps>(function Toaster(pro
           });
         });
       });
-    });
-  }, [toasts]);
+    }, toasterKey);
+  }, [toasts, toasterKey]);
 
   React.useEffect(() => {
     if (theme !== 'system') {
@@ -875,4 +861,5 @@ const Toaster = React.forwardRef<HTMLElement, ToasterProps>(function Toaster(pro
 });
 
 export { toast, Toaster, type ExternalToast, type ToastT, type ToasterProps, useSonner };
+export { createToaster } from './state';
 export { type ToastClassnames, type ToastToDismiss, type Action } from './types';

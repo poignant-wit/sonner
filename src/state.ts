@@ -15,28 +15,44 @@ let toastsCounter = 1;
 type titleT = (() => React.ReactNode) | React.ReactNode;
 
 class Observer {
-  subscribers: Array<(toast: ExternalToast | ToastToDismiss) => void>;
+  subscribers: Map<string, Array<(toast: ExternalToast | ToastToDismiss) => void>>;
   toasts: Array<ToastT | ToastToDismiss>;
   dismissedToasts: Set<string | number>;
 
   constructor() {
-    this.subscribers = [];
+    this.subscribers = new Map();
     this.toasts = [];
     this.dismissedToasts = new Set();
   }
 
   // We use arrow functions to maintain the correct `this` reference
-  subscribe = (subscriber: (toast: ToastT | ToastToDismiss) => void) => {
-    this.subscribers.push(subscriber);
+  subscribe = (subscriber: (toast: ToastT | ToastToDismiss) => void, key?: string) => {
+    const toasterKey = key || 'default';
+    if (!this.subscribers.has(toasterKey)) {
+      this.subscribers.set(toasterKey, []);
+    }
+    this.subscribers.get(toasterKey)!.push(subscriber);
 
     return () => {
-      const index = this.subscribers.indexOf(subscriber);
-      this.subscribers.splice(index, 1);
+      const keySubscribers = this.subscribers.get(toasterKey);
+      if (keySubscribers) {
+        const index = keySubscribers.indexOf(subscriber);
+        if (index > -1) {
+          keySubscribers.splice(index, 1);
+        }
+        if (keySubscribers.length === 0) {
+          this.subscribers.delete(toasterKey);
+        }
+      }
     };
   };
 
   publish = (data: ToastT) => {
-    this.subscribers.forEach((subscriber) => subscriber(data));
+    const toasterKey = data.key || 'default';
+    const keySubscribers = this.subscribers.get(toasterKey);
+    if (keySubscribers) {
+      keySubscribers.forEach((subscriber) => subscriber(data));
+    }
   };
 
   addToast = (data: ToastT) => {
@@ -66,7 +82,8 @@ class Observer {
     if (alreadyExists) {
       this.toasts = this.toasts.map((toast) => {
         if (toast.id === id) {
-          this.publish({ ...toast, ...data, id, title: message });
+          const updatedToast = { ...toast, ...data, id, title: message };
+          this.publish(updatedToast);
           return {
             ...toast,
             ...data,
@@ -85,14 +102,32 @@ class Observer {
     return id;
   };
 
-  dismiss = (id?: number | string) => {
+  dismiss = (id?: number | string, key?: string) => {
     if (id) {
       this.dismissedToasts.add(id);
-      requestAnimationFrame(() => this.subscribers.forEach((subscriber) => subscriber({ id, dismiss: true })));
+      const toasterKey = key || 'default';
+      const keySubscribers = this.subscribers.get(toasterKey);
+      if (keySubscribers) {
+        requestAnimationFrame(() => keySubscribers.forEach((subscriber) => subscriber({ id, dismiss: true })));
+      }
     } else {
-      this.toasts.forEach((toast) => {
-        this.subscribers.forEach((subscriber) => subscriber({ id: toast.id, dismiss: true }));
-      });
+      // Dismiss all toasts for specific key or all keys if no key provided
+      if (key) {
+        const keySubscribers = this.subscribers.get(key);
+        if (keySubscribers) {
+          this.toasts.filter(toast => ('key' in toast && toast.key === key) || (!('key' in toast) && key === 'default')).forEach((toast) => {
+            keySubscribers.forEach((subscriber) => subscriber({ id: toast.id, dismiss: true }));
+          });
+        }
+      } else {
+        this.toasts.forEach((toast) => {
+          const toastKey = ('key' in toast && toast.key) || 'default';
+          const keySubscribers = this.subscribers.get(toastKey);
+          if (keySubscribers) {
+            keySubscribers.forEach((subscriber) => subscriber({ id: toast.id, dismiss: true }));
+          }
+        });
+      }
     }
 
     return id;
@@ -246,8 +281,12 @@ class Observer {
     return id;
   };
 
-  getActiveToasts = () => {
-    return this.toasts.filter((toast) => !this.dismissedToasts.has(toast.id));
+  getActiveToasts = (key?: string) => {
+    const activeToasts = this.toasts.filter((toast) => !this.dismissedToasts.has(toast.id));
+    if (key) {
+      return activeToasts.filter((toast) => ('key' in toast && toast.key === key) || (!('key' in toast) && key === 'default'));
+    }
+    return activeToasts;
   };
 }
 
@@ -279,7 +318,33 @@ const isHttpResponse = (data: any): data is Response => {
 const basicToast = toastFunction;
 
 const getHistory = () => ToastState.toasts;
-const getToasts = () => ToastState.getActiveToasts();
+const getToasts = (key?: string) => ToastState.getActiveToasts(key);
+
+// Create key-aware toast functions
+export const createToaster = (key: string) => {
+  const keyedToastFunction = (message: titleT, data?: ExternalToast) => {
+    return toastFunction(message, { ...data, key });
+  };
+
+  return Object.assign(
+    keyedToastFunction,
+    {
+      success: (message: titleT | React.ReactNode, data?: ExternalToast) => ToastState.success(message, { ...data, key }),
+      info: (message: titleT | React.ReactNode, data?: ExternalToast) => ToastState.info(message, { ...data, key }),
+      warning: (message: titleT | React.ReactNode, data?: ExternalToast) => ToastState.warning(message, { ...data, key }),
+      error: (message: titleT | React.ReactNode, data?: ExternalToast) => ToastState.error(message, { ...data, key }),
+      custom: (jsx: (id: number | string) => React.ReactElement, data?: ExternalToast) => ToastState.custom(jsx, { ...data, key }),
+      message: (message: titleT | React.ReactNode, data?: ExternalToast) => ToastState.message(message, { ...data, key }),
+      promise: <ToastData,>(promise: PromiseT<ToastData>, data?: PromiseData<ToastData>) => ToastState.promise(promise, { ...data, key }),
+      dismiss: (id?: number | string) => ToastState.dismiss(id, key),
+      loading: (message: titleT | React.ReactNode, data?: ExternalToast) => ToastState.loading(message, { ...data, key }),
+    },
+    { 
+      getHistory: () => ToastState.toasts.filter(toast => ('key' in toast && toast.key === key) || (!('key' in toast) && key === 'default')),
+      getToasts: () => ToastState.getActiveToasts(key) 
+    },
+  );
+};
 
 // We use `Object.assign` to maintain the correct types as we would lose them otherwise
 export const toast = Object.assign(
