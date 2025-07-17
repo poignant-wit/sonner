@@ -517,7 +517,7 @@ html[dir='rtl'],
   --warning-border: rgba(255, 255, 255, 0.1);
   --warning-text: #fafbfc;
 
-  --error-bg: rgba(0, 0, 0, 0.4);
+  --error-bg: rgba(102, 22, 22, 0.9);
   --error-border: rgba(255, 255, 255, 0.1);
   --error-text: #fafbfc;
 }
