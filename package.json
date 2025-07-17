@@ -24,7 +24,6 @@
   "scripts": {
     "dev": "bunchee --watch",
     "build": "bunchee && cp src/styles.css dist/styles.css",
-    "prepare": "npm run build",
     "type-check": "tsc --noEmit",
     "dev:website": "turbo run dev --filter=website...",
     "dev:test": "turbo run dev --filter=test...",
