@@ -185,12 +185,12 @@ html[dir='rtl'],
 
 [data-sonner-toast][data-styled='true'] [data-button] {
   border-radius: 4px;
-  padding-left: 8px;
-  padding-right: 8px;
-  height: 24px;
+  padding-left: 12px;
+  padding-right: 12px;
+  height: 32px;
   font-size: 12px;
-  color: var(--normal-bg);
-  background: var(--normal-text);
+  color: #fafbfc;
+  background: rgba(255, 255, 255, 0.1);
   margin-left: var(--toast-button-margin-start);
   margin-right: var(--toast-button-margin-end);
   border: none;
@@ -213,12 +213,12 @@ html[dir='rtl'],
 }
 
 [data-sonner-toast][data-styled='true'] [data-cancel] {
-  color: var(--normal-text);
-  background: rgba(0, 0, 0, 0.08);
+  color: #fafbfc;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 [data-sonner-toaster][data-sonner-theme='dark'] [data-sonner-toast][data-styled='true'] [data-cancel] {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 [data-sonner-toast][data-styled='true'] [data-close-button] {
