@@ -582,7 +582,7 @@ const Toaster = React.forwardRef<HTMLElement, ToasterProps>(function Toaster(pro
     className,
     offset,
     mobileOffset,
-    theme = 'light',
+    theme = 'dark',
     richColors,
     duration,
     style,
